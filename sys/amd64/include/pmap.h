@@ -282,6 +282,7 @@ pt_entry_t *vtopte(vm_offset_t);
 #define	pde_store(pdep, pde)		pte_store(pdep, pde)
 
 extern pt_entry_t pg_nx;
+extern pt_entry_t pg_sme;
 
 #endif /* _KERNEL */
 

@@ -223,6 +223,18 @@ initializecpu(void)
 		wrmsr(MSR_EFER, msr);
 		pg_nx = PG_NX;
 	}
+	if (IS_BSP() && cpu_sme_enabled) {
+		msr = rdmsr(MSR_SYSCFG);
+		if ((msr & SYSCFG_MEM_ENCRYPTION) == 0) {
+			pg_sme = (pt_entry_t)1 << cpu_sme_cbit;
+			cpu_maxphyaddr -= cpu_sme_phyaddr_reduction;
+			wrmsr(MSR_SYSCFG, msr | SYSCFG_MEM_ENCRYPTION);
+		}
+		/*
+		 * else... what should we do? Shall we limit cpu_maxphyaddr
+		 * accordingly?
+		 */
+	}
 	hw_ibrs_recalculate();
 	hw_ssb_recalculate(false);
 	switch (cpu_vendor_id) {

@@ -115,6 +115,9 @@ u_int	cpu_mon_mwait_flags;	/* MONITOR/MWAIT flags (CPUID.05H.ECX) */
 u_int	cpu_mon_min_size;	/* MONITOR minimum range size, bytes */
 u_int	cpu_mon_max_size;	/* MONITOR minimum range size, bytes */
 u_int	cpu_maxphyaddr;		/* Max phys addr width in bits */
+u_int	cpu_sme_enabled;	/* Memory encryption enabled at CPU. */
+u_int	cpu_sme_cbit;		/* Memory encryption C bit. */
+u_int	cpu_sme_phyaddr_reduction;
 char machine[] = MACHINE;
 
 SYSCTL_UINT(_hw, OID_AUTO, via_feature_rng, CTLFLAG_RD,
@@ -1530,6 +1533,17 @@ finishidentcpu(void)
 	} else {
 		cpu_maxphyaddr = (cpu_feature & CPUID_PAE) != 0 ? 36 : 32;
 	}
+
+#ifdef __amd64__
+	if (cpu_vendor_id == CPU_VENDOR_AMD && cpu_exthigh >= 0x8000001f) {
+		do_cpuid(0x8000001f, regs);
+		if ((regs[0] & 0x01) == 1) {
+			cpu_sme_enabled = 1;
+			cpu_sme_cbit = regs[1] & 0x3f;
+			cpu_sme_phyaddr_reduction = (regs[1] >> 6) & 0x3f;
+		}
+	}
+#endif
 
 #ifdef __i386__
 	if (cpu_vendor_id == CPU_VENDOR_CYRIX) {

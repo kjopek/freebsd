@@ -91,6 +91,11 @@
 #define	EFER_TCE   0x000008000	/* Translation Cache Extension */
 
 /*
+ * Bits in AMD64 SYSCFG register.
+ */
+#define	SYSCFG_MEM_ENCRYPTION	0x800000
+
+/*
  * Intel Extended Features registers
  */
 #define	XCR0	0		/* XFEATURE_ENABLED_MASK register */
