@@ -99,6 +99,7 @@
 #ifdef __LP64__
 #define	MAP_32BIT	 0x00080000 /* map in the low 2GB of address space */
 #endif
+#define	MAP_SCRAMBL	 0x00100000 /* enable memory scrambling */
 
 /*
  * Request specific alignment (n == log2 of the desired alignment).

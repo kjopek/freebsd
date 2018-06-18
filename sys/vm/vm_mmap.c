@@ -227,7 +227,7 @@ kern_mmap(struct thread *td, uintptr_t addr0, size_t size, int prot, int flags,
 	}
 	if ((flags & ~(MAP_SHARED | MAP_PRIVATE | MAP_FIXED | MAP_HASSEMAPHORE |
 	    MAP_STACK | MAP_NOSYNC | MAP_ANON | MAP_EXCL | MAP_NOCORE |
-	    MAP_PREFAULT_READ | MAP_GUARD |
+	    MAP_PREFAULT_READ | MAP_GUARD | MAP_SCRAMBL |
 #ifdef MAP_32BIT
 	    MAP_32BIT |
 #endif
@@ -236,6 +236,8 @@ kern_mmap(struct thread *td, uintptr_t addr0, size_t size, int prot, int flags,
 	if ((flags & (MAP_EXCL | MAP_FIXED)) == MAP_EXCL)
 		return (EINVAL);
 	if ((flags & (MAP_SHARED | MAP_PRIVATE)) == (MAP_SHARED | MAP_PRIVATE))
+		return (EINVAL);
+	if ((flags & (MAP_ANON | MAP_SCRAMBL)) == MAP_SCRAMBL)
 		return (EINVAL);
 	if (prot != PROT_NONE &&
 	    (prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC)) != 0)

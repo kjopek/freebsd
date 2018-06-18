@@ -335,6 +335,10 @@ Stacks created with
 automatically grow.
 Guards prevent inadvertent use of the regions into which those
 stacks can grow without requiring mapping the whole stack in advance.
+.It Dv MAP_SCRAMBL
+Enables scrambling for mmaped region if hardware supports
+this technique. Currently works only with
+.Dv MAP_ANON
 .El
 .Pp
 The
