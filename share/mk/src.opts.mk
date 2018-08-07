@@ -300,6 +300,9 @@ __DEFAULT_NO_OPTIONS+=CLANG CLANG_BOOTSTRAP CLANG_IS_CC LLD
 .if ${__T} == "aarch64" || ${__T:Mriscv*} != ""
 BROKEN_OPTIONS+=BINUTILS BINUTILS_BOOTSTRAP GCC GCC_BOOTSTRAP GDB
 .endif
+.if ${__T:Mriscv*} != ""
+BROKEN_OPTIONS+=OFED
+.endif
 .if ${__T} == "aarch64" || ${__T} == "amd64" || ${__T} == "i386" || \
     ${__T:Mriscv*} != "" || ${__TT} == "mips"
 __DEFAULT_YES_OPTIONS+=LLVM_LIBUNWIND
@@ -308,6 +311,9 @@ __DEFAULT_NO_OPTIONS+=LLVM_LIBUNWIND
 .endif
 .if ${__T} == "aarch64" || ${__T} == "amd64"
 __DEFAULT_YES_OPTIONS+=LLD_BOOTSTRAP LLD_IS_LD
+.elif ${__T} == "armv7" || ${__T} == "i386"
+__DEFAULT_YES_OPTIONS+=LLD_BOOTSTRAP
+__DEFAULT_NO_OPTIONS+=LLD_IS_LD
 .else
 __DEFAULT_NO_OPTIONS+=LLD_BOOTSTRAP LLD_IS_LD
 .endif
