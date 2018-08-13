@@ -86,36 +86,6 @@ cloudabi64_proc_setregs(struct thread *td, struct image_params *imgp,
 	(void)cpu_set_user_tls(td, TO_PTR(stack));
 }
 
-static int
-cloudabi64_fetch_syscall_args(struct thread *td)
-{
-	struct trapframe *frame;
-	struct syscall_args *sa;
-
-	frame = td->td_frame;
-	sa = &td->td_sa;
-
-	/* Obtain system call number. */
-	sa->code = frame->tf_rax;
-	if (sa->code >= CLOUDABI64_SYS_MAXSYSCALL)
-		return (ENOSYS);
-	sa->callp = &cloudabi64_sysent[sa->code];
-	sa->narg = sa->callp->sy_narg;
-
-	/* Fetch system call arguments. */
-	sa->args[0] = frame->tf_rdi;
-	sa->args[1] = frame->tf_rsi;
-	sa->args[2] = frame->tf_rdx;
-	sa->args[3] = frame->tf_rcx; /* Actually %r10. */
-	sa->args[4] = frame->tf_r8;
-	sa->args[5] = frame->tf_r9;
-
-	/* Default system call return values. */
-	td->td_retval[0] = 0;
-	td->td_retval[1] = frame->tf_rdx;
-	return (0);
-}
-
 static void
 cloudabi64_set_syscall_retval(struct thread *td, int error)
 {
@@ -206,7 +176,7 @@ static struct sysentvec cloudabi64_elf_sysvec = {
 	.sv_setregs		= cloudabi64_proc_setregs,
 	.sv_flags		= SV_ABI_CLOUDABI | SV_CAPSICUM | SV_LP64,
 	.sv_set_syscall_retval	= cloudabi64_set_syscall_retval,
-	.sv_fetch_syscall_args	= cloudabi64_fetch_syscall_args,
+	.sv_fetch_syscall_args	= cpu_fetch_syscall_args,
 	.sv_syscallnames	= cloudabi64_syscallnames,
 	.sv_schedtail		= cloudabi64_schedtail,
 };
