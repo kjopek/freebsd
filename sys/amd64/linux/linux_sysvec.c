@@ -118,6 +118,7 @@ static bool	linux_trans_osrel(const Elf_Note *note, int32_t *osrel);
 static void	linux_vdso_install(void *param);
 static void	linux_vdso_deinstall(void *param);
 static void	linux_set_syscall_retval(struct thread *td, int error);
+static int	linux_fetch_syscall_args(struct thread *td);
 static void	linux_exec_setregs(struct thread *td, struct image_params *imgp,
 		    u_long stack);
 static int	linux_vsyscall(struct thread *td);
@@ -185,6 +186,36 @@ linux_translate_traps(int signal, int trap_code)
 	default:
 		return (signal);
 	}
+}
+
+static int
+linux_fetch_syscall_args(struct thread *td)
+{
+	struct proc *p;
+	struct trapframe *frame;
+	struct syscall_args *sa;
+
+	p = td->td_proc;
+	frame = td->td_frame;
+	sa = &td->td_sa;
+
+	sa->args[0] = frame->tf_rdi;
+	sa->args[1] = frame->tf_rsi;
+	sa->args[2] = frame->tf_rdx;
+	sa->args[3] = frame->tf_rcx;
+	sa->args[4] = frame->tf_r8;
+	sa->args[5] = frame->tf_r9;
+	sa->code = frame->tf_rax;
+
+	if (sa->code >= p->p_sysent->sv_size)
+		/* nosys */
+		sa->callp = &p->p_sysent->sv_table[p->p_sysent->sv_size - 1];
+	else
+		sa->callp = &p->p_sysent->sv_table[sa->code];
+	sa->narg = sa->callp->sy_narg;
+
+	td->td_retval[0] = 0;
+	return (0);
 }
 
 static void
@@ -704,7 +735,7 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_maxssiz	= NULL,
 	.sv_flags	= SV_ABI_LINUX | SV_LP64 | SV_SHP,
 	.sv_set_syscall_retval = linux_set_syscall_retval,
-	.sv_fetch_syscall_args = cpu_fetch_syscall_args,
+	.sv_fetch_syscall_args = linux_fetch_syscall_args,
 	.sv_syscallnames = NULL,
 	.sv_shared_page_base = SHAREDPAGE,
 	.sv_shared_page_len = PAGE_SIZE,

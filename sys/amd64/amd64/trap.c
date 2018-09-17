@@ -963,67 +963,48 @@ cpu_fetch_syscall_args(struct thread *td)
 	register_t *argp;
 	struct syscall_args *sa;
 	caddr_t params;
-	int regoff, regcnt, error;
-	u_int abi;
+	int reg, regcnt, error;
 
 	p = td->td_proc;
-	abi = SV_PROC_ABI(p);
-
-	KASSERT(abi == SV_ABI_FREEBSD ||
-	    abi == SV_ABI_LINUX ||
-	    abi == SV_ABI_CLOUDABI,
-	    ("Unknown ABI. cpu_fetch_syscall_args is unimplemented."));
-
-
 	frame = td->td_frame;
-	regoff = 0;
-	if (__predict_true(abi == SV_ABI_FREEBSD)) {
-		regoff = frame->tf_rax == SYS_syscall ||
-		    frame->tf_rax == SYS___syscall;
-	}
-
 	sa = &td->td_sa;
-	regcnt = 6 - regoff;
+	reg = 0;
+	regcnt = 6;
 
-	sa->code = regoff ? frame->tf_rdi : frame->tf_rax;
-	if (__predict_false(sa->code >= p->p_sysent->sv_size)) {
-		switch (abi) {
-		case SV_ABI_CLOUDABI:
-			return (ENOSYS);
-		case SV_ABI_LINUX:
-			sa->code = p->p_sysent->sv_size - 1;
-			break;
-		case SV_ABI_FREEBSD:
-			sa->code = 0;
-			break;
-		}
+	sa->code = frame->tf_rax;
+
+	if (sa->code == SYS_syscall || sa->code == SYS___syscall) {
+		sa->code = frame->tf_rdi;
+		reg++;
+		regcnt--;
 	}
-	sa->callp = &p->p_sysent->sv_table[sa->code];
-	if (p->p_sysent->sv_mask)
-		sa->code &= p->p_sysent->sv_mask;
+ 	if (p->p_sysent->sv_mask)
+ 		sa->code &= p->p_sysent->sv_mask;
+
+ 	if (sa->code >= p->p_sysent->sv_size)
+ 		sa->callp = &p->p_sysent->sv_table[0];
+  	else
+ 		sa->callp = &p->p_sysent->sv_table[sa->code];
 
 	sa->narg = sa->callp->sy_narg;
 	KASSERT(sa->narg <= sizeof(sa->args) / sizeof(sa->args[0]),
 	    ("Too many syscall arguments!"));
 	error = 0;
 	argp = &frame->tf_rdi;
-	argp += regoff;
+	argp += reg;
 	memcpy(sa->args, argp, sizeof(sa->args[0]) * 6);
-	/* Other ABIs than FreeBSD has maximum 6 arguments per syscall. */
 	if (sa->narg > regcnt) {
 		params = (caddr_t)frame->tf_rsp + sizeof(register_t);
 		error = copyin(params, &sa->args[regcnt],
 	    	    (sa->narg - regcnt) * sizeof(sa->args[0]));
 	}
 
-	if (error != 0)
-		return (error);
-
-	td->td_retval[0] = 0;
-	if (SV_PROC_ABI(p) != SV_ABI_LINUX)
+	if (error == 0) {
+		td->td_retval[0] = 0;
 		td->td_retval[1] = frame->tf_rdx;
+	}
 
-	return (0);
+	return (error);
 }
 
 #include "../../kern/subr_syscall.c"
